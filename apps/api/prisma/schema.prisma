@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  PASTOR
+  LEADER
+  MEMBER
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  EXCUSED
+}
+
+enum GroupType {
+  DEPARTMENT
+  MINISTRY
+  SMALL_GROUP
+}
+
+/// Application login accounts. Linked optionally to a Member profile.
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      Role     @default(MEMBER)
+  isActive  Boolean  @default(true)
+  member    Member?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// A church member (people directory).
+model Member {
+  id             String           @id @default(cuid())
+  firstName      String
+  lastName       String
+  email          String?          @unique
+  phone          String?
+  gender         String?
+  dateOfBirth    DateTime?
+  address        String?
+  joinedAt       DateTime         @default(now())
+  isActive       Boolean          @default(true)
+  notes          String?
+  user           User?            @relation(fields: [userId], references: [id])
+  userId         String?          @unique
+  groupLinks     GroupMembership[]
+  attendance     Attendance[]
+  tags           MemberTag[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+model MemberTag {
+  id       String  @id @default(cuid())
+  label    String
+  member   Member  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  memberId String
+
+  @@unique([memberId, label])
+}
+
+/// Departments, ministries and small groups all share this table via `type`.
+model Group {
+  id          String            @id @default(cuid())
+  name        String
+  type        GroupType
+  description String?
+  isActive    Boolean           @default(true)
+  members     GroupMembership[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model GroupMembership {
+  id       String @id @default(cuid())
+  group    Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId  String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  memberId String
+  role     String @default("Member")
+  joinedAt DateTime @default(now())
+
+  @@unique([groupId, memberId])
+}
+
+model Event {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  location    String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  attendance  Attendance[]
+}
+
+model Attendance {
+  id        String           @id @default(cuid())
+  event     Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   String
+  member    Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  memberId  String
+  status    AttendanceStatus @default(PRESENT)
+  recordedAt DateTime        @default(now())
+
+  @@unique([eventId, memberId])
+}
+
+/// Recent activity feed entries shown on the dashboard.
+model ActivityLog {
+  id        String   @id @default(cuid())
+  type      String
+  message   String
+  createdAt DateTime @default(now())
+}

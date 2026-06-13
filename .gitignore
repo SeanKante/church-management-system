@@ -1,0 +1,24 @@
+node_modules/
+dist/
+build/
+.turbo/
+coverage/
+
+# env
+.env
+.env.local
+*.local
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# editor / os
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# prisma
+apps/api/prisma/*.db
